@@ -1,7 +1,4 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy JAR app to Azure Web App - spring-azure-demo
+name: Build and deploy JAR app to Azure Web App - erdemkurt
 
 on:
   push:
@@ -14,21 +11,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-    - name: Set up Java version
-      uses: actions/setup-java@v1
-      with:
-        java-version: '8'
+      - name: Set up Java version
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
 
-    - name: Build with Maven
-      run: mvn clean install
+      - name: Build with Maven
+        run: mvn clean install
 
-    - name: Upload artifact for deployment job
-      uses: actions/upload-artifact@v2
-      with:
-        name: java-app
-        path: '${{ github.workspace }}/target/*.jar'
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v3
+        with:
+          name: java-app
+          path: '${{ github.workspace }}/target/*.jar'
 
   deploy:
     runs-on: windows-latest
@@ -36,18 +33,31 @@ jobs:
     environment:
       name: 'production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write #This is required for requesting the JWT
 
     steps:
-    - name: Download artifact from build job
-      uses: actions/download-artifact@v2
-      with:
-        name: java-app
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v3
+        with:
+          name: java-app
+      
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.__clientidsecretname__ }}
+          tenant-id: ${{ secrets.__tenantidsecretname__ }}
+          subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
 
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'spring-azure-demo'
-        slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_a7a50d2695dd4fac9d66778aa8e53f6e }}
-        package: '*.jar'
+      - name: Get Maven version
+        id: maven-version
+        run: |
+          mvn --version | grep 'Apache Maven' | sed -E 's/Apache Maven (.+)/\1/' | xargs echo "Maven version is"
+          
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'erdemkurt'
+          slot-name: 'production'
+          package: '*.jar'
